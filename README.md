@@ -75,24 +75,6 @@
 
 ---
 
-## 🚀 Getting Started
-
-### Prerequisites
-
-1. **YouTube Data API v3 Key**
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project (or select existing)
-   - Enable **YouTube Data API v3**
-   - Create an **API Key** under Credentials
-   - (Recommended) Restrict the key to YouTube Data API v3 only
-
-### Usage
-
-1. Open the app in your browser
-2. Click the **🔑 API Key** button in the top bar
-3. Paste your YouTube API key and save
-4. Start searching for channels and exploring analytics!
-
 ### Run Locally
 
 Fork or clone this repository:
@@ -108,6 +90,15 @@ npx serve .
 # or
 python3 -m http.server 8000
 ```
+
+### Prerequisites
+
+1. **YouTube Data API v3 Key**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project (or select existing)
+   - Enable **YouTube Data API v3**
+   - Create an **API Key** under Credentials
+   - (Recommended) Restrict the key to YouTube Data API v3 only
 
 ---
 
