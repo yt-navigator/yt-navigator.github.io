@@ -6,15 +6,14 @@
 const YTApi = (() => {
   const BASE = 'https://www.googleapis.com/youtube/v3';
 
-  // API key injected at deploy time via GitHub Actions secret YOUTUBE_API_KEY
-  const BUILT_IN_KEY = '__YOUTUBE_API_KEY__';
+  const API_KEY = 'AIzaSyDM1v9AKVbZyT5iUKYuXGavyEyeFlfOVv4';
 
   function getKey() {
-    return BUILT_IN_KEY;
+    return API_KEY;
   }
 
   function hasKey() {
-    return !!BUILT_IN_KEY && BUILT_IN_KEY !== '__YOUTUBE_API_KEY__';
+    return true;
   }
 
   async function request(endpoint, params = {}) {
