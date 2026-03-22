@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YTNavigator – YouTube Channel & Video Analytics</title>
+  <meta name="description" content="Powerful YouTube analytics dashboard. Track channels, analyze videos, compare performance, and discover trends – all in one place." />
+  <meta name="keywords" content="YouTube analytics, channel tracker, video stats, subscriber count, view count, YouTube dashboard" />
+  <meta name="author" content="YTNavigator" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="YTNavigator – YouTube Analytics Dashboard" />
+  <meta property="og:description" content="Track YouTube channels, analyze videos, compare performance, and discover trends." />
+  <meta property="og:type" content="website" />
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+  <!-- html2canvas for screenshot exports -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+  <!-- Sortable.js for drag & drop -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- ============ LOADING SCREEN ============ -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="loader-content">
+      <div class="loader-icon">
+        <svg viewBox="0 0 120 120" class="loader-svg">
+          <circle cx="60" cy="60" r="50" class="loader-circle" />
+          <path d="M45 35 L85 60 L45 85 Z" class="loader-play" />
+        </svg>
+      </div>
+      <h1 class="loader-title">YTNavigator</h1>
+      <p class="loader-subtitle">Loading Analytics Engine...</p>
+      <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- ============ API KEY MODAL ============ -->
+  <div id="api-key-modal" class="modal" style="display:none;">
+    <div class="modal-overlay"></div>
+    <div class="modal-content modal-sm">
+      <div class="modal-header">
+        <h2>🔑 YouTube API Key</h2>
+        <button class="modal-close" onclick="closeModal('api-key-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Enter your YouTube Data API v3 key to enable live data fetching. Your key is stored locally and never sent to our servers.</p>
+        <div class="form-group">
+          <label for="api-key-input">API Key</label>
+          <input type="password" id="api-key-input" class="input" placeholder="AIza..." autocomplete="off" />
+        </div>
+        <p class="text-muted text-sm">Don't have a key? <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer">Get one from Google Cloud Console</a></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('api-key-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveApiKey()">Save Key</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CHANNEL DETAIL MODAL ============ -->
+  <div id="channel-detail-modal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="closeModal('channel-detail-modal')"></div>
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h2 id="channel-detail-title">Channel Details</h2>
+        <button class="modal-close" onclick="closeModal('channel-detail-modal')">&times;</button>
+      </div>
+      <div class="modal-body" id="channel-detail-body">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ VIDEO DETAIL MODAL ============ -->
+  <div id="video-detail-modal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="closeModal('video-detail-modal')"></div>
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h2 id="video-detail-title">Video Details</h2>
+        <button class="modal-close" onclick="closeModal('video-detail-modal')">&times;</button>
+      </div>
+      <div class="modal-body" id="video-detail-body">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ COMPARE MODAL ============ -->
+  <div id="compare-modal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="closeModal('compare-modal')"></div>
+    <div class="modal-content modal-xl">
+      <div class="modal-header">
+        <h2>📊 Comparison View</h2>
+        <button class="modal-close" onclick="closeModal('compare-modal')">&times;</button>
+      </div>
+      <div class="modal-body" id="compare-body">
+        <!-- Populated dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ REPORT MODAL ============ -->
+  <div id="report-modal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="closeModal('report-modal')"></div>
+    <div class="modal-content modal-md">
+      <div class="modal-header">
+        <h2>📄 Generate Report</h2>
+        <button class="modal-close" onclick="closeModal('report-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Report Type</label>
+          <select id="report-type" class="input">
+            <option value="channel">Channel Summary</option>
+            <option value="video">Video Analytics</option>
+            <option value="comparison">Comparison Report</option>
+            <option value="full">Full Dashboard Report</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Date Range</label>
+          <div class="date-range-row">
+            <input type="date" id="report-date-from" class="input" />
+            <span>to</span>
+            <input type="date" id="report-date-to" class="input" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Format</label>
+          <div class="btn-group">
+            <button class="btn btn-outline active" data-format="csv" onclick="selectReportFormat(this)">CSV</button>
+            <button class="btn btn-outline" data-format="json" onclick="selectReportFormat(this)">JSON</button>
+            <button class="btn btn-outline" data-format="image" onclick="selectReportFormat(this)">Image</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeModal('report-modal')">Cancel</button>
+        <button class="btn btn-primary" onclick="generateReport()">⬇ Download Report</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ NOTIFICATION PANEL ============ -->
+  <div id="notification-panel" class="notification-panel" style="display:none;">
+    <div class="notif-header">
+      <h3>🔔 Notifications</h3>
+      <button class="btn btn-ghost btn-sm" onclick="clearNotifications()">Clear All</button>
+    </div>
+    <div id="notif-list" class="notif-list">
+      <div class="notif-empty">No notifications yet</div>
+    </div>
+  </div>
+
+  <!-- ============ TOAST CONTAINER ============ -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ============ APP SHELL ============ -->
+  <div id="app" class="app" style="display:none;">
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 120 120" width="32" height="32">
+            <rect x="10" y="10" width="100" height="100" rx="20" fill="var(--accent)" />
+            <path d="M45 35 L85 60 L45 85 Z" fill="white" />
+          </svg>
+        </div>
+        <span class="brand-text">YTNavigator</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <span class="nav-label">Main</span>
+          <a href="#" class="nav-item active" data-page="dashboard" onclick="navigateTo('dashboard', event)">
+            <span class="nav-icon">📊</span>
+            <span class="nav-text">Dashboard</span>
+          </a>
+          <a href="#" class="nav-item" data-page="channels" onclick="navigateTo('channels', event)">
+            <span class="nav-icon">📺</span>
+            <span class="nav-text">Channels</span>
+          </a>
+          <a href="#" class="nav-item" data-page="videos" onclick="navigateTo('videos', event)">
+            <span class="nav-icon">🎬</span>
+            <span class="nav-text">Videos</span>
+          </a>
+          <a href="#" class="nav-item" data-page="trending" onclick="navigateTo('trending', event)">
+            <span class="nav-icon">🔥</span>
+            <span class="nav-text">Trending</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-label">Analytics</span>
+          <a href="#" class="nav-item" data-page="compare" onclick="navigateTo('compare', event)">
+            <span class="nav-icon">⚖️</span>
+            <span class="nav-text">Compare</span>
+          </a>
+          <a href="#" class="nav-item" data-page="insights" onclick="navigateTo('insights', event)">
+            <span class="nav-icon">💡</span>
+            <span class="nav-text">Insights</span>
+          </a>
+          <a href="#" class="nav-item" data-page="keywords" onclick="navigateTo('keywords', event)">
+            <span class="nav-icon">🏷️</span>
+            <span class="nav-text">Keywords</span>
+          </a>
+          <a href="#" class="nav-item" data-page="heatmap" onclick="navigateTo('heatmap', event)">
+            <span class="nav-icon">🗺️</span>
+            <span class="nav-text">Heatmap</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-label">Tools</span>
+          <a href="#" class="nav-item" data-page="favorites" onclick="navigateTo('favorites', event)">
+            <span class="nav-icon">⭐</span>
+            <span class="nav-text">Favorites</span>
+          </a>
+          <a href="#" class="nav-item" data-page="watchlater" onclick="navigateTo('watchlater', event)">
+            <span class="nav-icon">⏰</span>
+            <span class="nav-text">Watch Later</span>
+          </a>
+          <a href="#" class="nav-item" data-page="reports" onclick="navigateTo('reports', event)">
+            <span class="nav-icon">📄</span>
+            <span class="nav-text">Reports</span>
+          </a>
+          <a href="#" class="nav-item" data-page="alerts" onclick="navigateTo('alerts', event)">
+            <span class="nav-icon">🔔</span>
+            <span class="nav-text">Alerts</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <span class="nav-label">Settings</span>
+          <a href="#" class="nav-item" data-page="settings" onclick="navigateTo('settings', event)">
+            <span class="nav-icon">⚙️</span>
+            <span class="nav-text">Settings</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="privacy.html" class="nav-item nav-item-sm">
+          <span class="nav-icon">🔒</span>
+          <span class="nav-text">Privacy</span>
+        </a>
+        <a href="terms.html" class="nav-item nav-item-sm">
+          <span class="nav-icon">📜</span>
+          <span class="nav-text">Terms</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main">
+      <!-- ===== TOP BAR ===== -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="sidebar-toggle" class="btn btn-icon" onclick="toggleSidebar()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <div class="search-wrapper">
+            <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="global-search" class="search-input" placeholder="Search channels, videos, keywords..." autocomplete="off" />
+            <kbd class="search-kbd">⌘K</kbd>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-icon" id="refresh-btn" onclick="refreshData()" title="Refresh Data">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          </button>
+          <button class="btn btn-icon notif-btn" onclick="toggleNotifications()" title="Notifications">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span id="notif-badge" class="notif-badge" style="display:none;">0</span>
+          </button>
+          <button class="btn btn-icon" onclick="toggleTheme()" title="Toggle Theme">
+            <span id="theme-icon">🌙</span>
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('api-key-modal')">
+            <span>🔑</span> <span class="hide-mobile">API Key</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- ===== PAGE CONTENT ===== -->
+      <div class="page-content" id="page-content">
+
+        <!-- ==================== DASHBOARD PAGE ==================== -->
+        <section id="page-dashboard" class="page active">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Dashboard</h1>
+              <p class="page-desc">Overview of your tracked channels and videos</p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-outline" onclick="openModal('report-modal')">📄 Report</button>
+              <button class="btn btn-primary" onclick="navigateTo('channels', event)">+ Add Channel</button>
+            </div>
+          </div>
+
+          <!-- Stats Cards -->
+          <div class="stats-grid" id="dashboard-stats">
+            <div class="stat-card">
+              <div class="stat-icon stat-icon-blue">📺</div>
+              <div class="stat-info">
+                <span class="stat-value" id="stat-channels">0</span>
+                <span class="stat-label">Tracked Channels</span>
+              </div>
+              <span class="stat-trend stat-trend-up" id="stat-channels-trend">—</span>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon stat-icon-red">🎬</div>
+              <div class="stat-info">
+                <span class="stat-value" id="stat-videos">0</span>
+                <span class="stat-label">Total Videos</span>
+              </div>
+              <span class="stat-trend stat-trend-up" id="stat-videos-trend">—</span>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon stat-icon-green">👁️</div>
+              <div class="stat-info">
+                <span class="stat-value" id="stat-views">0</span>
+                <span class="stat-label">Total Views</span>
+              </div>
+              <span class="stat-trend stat-trend-up" id="stat-views-trend">—</span>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon stat-icon-purple">👥</div>
+              <div class="stat-info">
+                <span class="stat-value" id="stat-subs">0</span>
+                <span class="stat-label">Total Subscribers</span>
+              </div>
+              <span class="stat-trend stat-trend-up" id="stat-subs-trend">—</span>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon stat-icon-yellow">👍</div>
+              <div class="stat-info">
+                <span class="stat-value" id="stat-likes">0</span>
+                <span class="stat-label">Total Likes</span>
+              </div>
+              <span class="stat-trend" id="stat-likes-trend">—</span>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon stat-icon-orange">💬</div>
+              <div class="stat-info">
+                <span class="stat-value" id="stat-comments">0</span>
+                <span class="stat-label">Total Comments</span>
+              </div>
+              <span class="stat-trend" id="stat-comments-trend">—</span>
+            </div>
+          </div>
+
+          <!-- Charts Row -->
+          <div class="charts-grid">
+            <div class="card chart-card">
+              <div class="card-header">
+                <h3>Subscriber Growth</h3>
+                <div class="chart-controls">
+                  <button class="btn btn-ghost btn-xs active" onclick="setChartRange('subs', '7d', this)">7D</button>
+                  <button class="btn btn-ghost btn-xs" onclick="setChartRange('subs', '30d', this)">30D</button>
+                  <button class="btn btn-ghost btn-xs" onclick="setChartRange('subs', '90d', this)">90D</button>
+                </div>
+              </div>
+              <div class="card-body chart-container">
+                <canvas id="chart-subs"></canvas>
+              </div>
+            </div>
+            <div class="card chart-card">
+              <div class="card-header">
+                <h3>Views Overview</h3>
+                <div class="chart-controls">
+                  <button class="btn btn-ghost btn-xs active" onclick="setChartRange('views', '7d', this)">7D</button>
+                  <button class="btn btn-ghost btn-xs" onclick="setChartRange('views', '30d', this)">30D</button>
+                  <button class="btn btn-ghost btn-xs" onclick="setChartRange('views', '90d', this)">90D</button>
+                </div>
+              </div>
+              <div class="card-body chart-container">
+                <canvas id="chart-views"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="charts-grid">
+            <div class="card chart-card">
+              <div class="card-header">
+                <h3>Engagement Breakdown</h3>
+              </div>
+              <div class="card-body chart-container chart-container-sm">
+                <canvas id="chart-engagement"></canvas>
+              </div>
+            </div>
+            <div class="card chart-card">
+              <div class="card-header">
+                <h3>Top Videos by Views</h3>
+              </div>
+              <div class="card-body chart-container">
+                <canvas id="chart-top-videos"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="card">
+            <div class="card-header">
+              <h3>Recent Activity</h3>
+              <button class="btn btn-ghost btn-sm" onclick="navigateTo('videos', event)">View All →</button>
+            </div>
+            <div class="card-body">
+              <div id="recent-activity" class="activity-list">
+                <div class="empty-state">
+                  <p>No activity yet. Add a channel to get started!</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="quick-actions">
+            <h3>Quick Actions</h3>
+            <div class="actions-grid">
+              <button class="action-card" onclick="navigateTo('channels', event)">
+                <span class="action-icon">📺</span>
+                <span class="action-label">Add Channel</span>
+              </button>
+              <button class="action-card" onclick="navigateTo('compare', event)">
+                <span class="action-icon">⚖️</span>
+                <span class="action-label">Compare</span>
+              </button>
+              <button class="action-card" onclick="navigateTo('trending', event)">
+                <span class="action-icon">🔥</span>
+                <span class="action-label">Trending</span>
+              </button>
+              <button class="action-card" onclick="navigateTo('keywords', event)">
+                <span class="action-icon">🏷️</span>
+                <span class="action-label">Keywords</span>
+              </button>
+              <button class="action-card" onclick="openModal('report-modal')">
+                <span class="action-icon">📄</span>
+                <span class="action-label">Report</span>
+              </button>
+              <button class="action-card" onclick="navigateTo('settings', event)">
+                <span class="action-icon">⚙️</span>
+                <span class="action-label">Settings</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== CHANNELS PAGE ==================== -->
+        <section id="page-channels" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Channels</h1>
+              <p class="page-desc">Search, register, and manage YouTube channels</p>
+            </div>
+          </div>
+
+          <!-- Channel Search -->
+          <div class="card">
+            <div class="card-header"><h3>Search & Add Channel</h3></div>
+            <div class="card-body">
+              <div class="search-row">
+                <input type="text" id="channel-search-input" class="input input-lg" placeholder="Enter channel name, URL, or ID..." />
+                <button class="btn btn-primary btn-lg" onclick="searchChannel()">🔍 Search</button>
+              </div>
+              <div id="channel-search-results" class="search-results" style="display:none;"></div>
+            </div>
+          </div>
+
+          <!-- Channel Filters -->
+          <div class="filter-bar">
+            <div class="filter-group">
+              <label>Sort by:</label>
+              <select id="channel-sort" class="input input-sm" onchange="renderChannelList()">
+                <option value="name">Name</option>
+                <option value="subscribers">Subscribers</option>
+                <option value="views">Total Views</option>
+                <option value="videos">Video Count</option>
+                <option value="recent">Recently Added</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Country:</label>
+              <select id="channel-country-filter" class="input input-sm" onchange="renderChannelList()">
+                <option value="">All Countries</option>
+                <option value="US">United States</option>
+                <option value="KR">South Korea</option>
+                <option value="JP">Japan</option>
+                <option value="GB">United Kingdom</option>
+                <option value="IN">India</option>
+                <option value="BR">Brazil</option>
+                <option value="DE">Germany</option>
+                <option value="FR">France</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <button class="btn btn-outline btn-sm" onclick="exportChannelsCsv()">⬇ Export CSV</button>
+            </div>
+          </div>
+
+          <!-- Channel Grid -->
+          <div id="channel-list" class="channel-grid">
+            <div class="empty-state">
+              <div class="empty-icon">📺</div>
+              <h3>No Channels Tracked</h3>
+              <p>Search for a channel above to get started</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== VIDEOS PAGE ==================== -->
+        <section id="page-videos" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Videos</h1>
+              <p class="page-desc">Browse and analyze videos from tracked channels</p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-outline" onclick="exportVideosCsv()">⬇ Export</button>
+            </div>
+          </div>
+
+          <!-- Video Filters -->
+          <div class="filter-bar">
+            <div class="filter-group">
+              <label>Channel:</label>
+              <select id="video-channel-filter" class="input input-sm" onchange="renderVideoList()">
+                <option value="">All Channels</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Sort by:</label>
+              <select id="video-sort" class="input input-sm" onchange="renderVideoList()">
+                <option value="date">Upload Date</option>
+                <option value="views">Views</option>
+                <option value="likes">Likes</option>
+                <option value="comments">Comments</option>
+                <option value="engagement">Engagement Rate</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Period:</label>
+              <select id="video-period-filter" class="input input-sm" onchange="renderVideoList()">
+                <option value="">All Time</option>
+                <option value="7">Last 7 Days</option>
+                <option value="30">Last 30 Days</option>
+                <option value="90">Last 90 Days</option>
+                <option value="365">Last Year</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>View:</label>
+              <div class="btn-group">
+                <button class="btn btn-ghost btn-xs active" onclick="setVideoView('grid', this)">Grid</button>
+                <button class="btn btn-ghost btn-xs" onclick="setVideoView('list', this)">List</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Grid -->
+          <div id="video-list" class="video-grid">
+            <div class="empty-state">
+              <div class="empty-icon">🎬</div>
+              <h3>No Videos Yet</h3>
+              <p>Add a channel first, then videos will appear here</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== TRENDING PAGE ==================== -->
+        <section id="page-trending" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Trending</h1>
+              <p class="page-desc">Discover trending videos by country and category</p>
+            </div>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-group">
+              <label>Country:</label>
+              <select id="trending-country" class="input input-sm" onchange="fetchTrending()">
+                <option value="US">United States</option>
+                <option value="KR">South Korea</option>
+                <option value="JP">Japan</option>
+                <option value="GB">United Kingdom</option>
+                <option value="IN">India</option>
+                <option value="BR">Brazil</option>
+                <option value="DE">Germany</option>
+                <option value="FR">France</option>
+                <option value="CA">Canada</option>
+                <option value="AU">Australia</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Category:</label>
+              <select id="trending-category" class="input input-sm" onchange="fetchTrending()">
+                <option value="0">All</option>
+                <option value="1">Film & Animation</option>
+                <option value="2">Autos & Vehicles</option>
+                <option value="10">Music</option>
+                <option value="15">Pets & Animals</option>
+                <option value="17">Sports</option>
+                <option value="20">Gaming</option>
+                <option value="22">People & Blogs</option>
+                <option value="23">Comedy</option>
+                <option value="24">Entertainment</option>
+                <option value="25">News & Politics</option>
+                <option value="26">Howto & Style</option>
+                <option value="27">Education</option>
+                <option value="28">Science & Technology</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="trending-list" class="video-grid">
+            <div class="empty-state">
+              <div class="empty-icon">🔥</div>
+              <h3>Trending Videos</h3>
+              <p>Set your API key and select a country to see trending videos</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== COMPARE PAGE ==================== -->
+        <section id="page-compare" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Compare</h1>
+              <p class="page-desc">Compare channels and videos side by side</p>
+            </div>
+          </div>
+
+          <!-- Compare Channels -->
+          <div class="card">
+            <div class="card-header"><h3>Compare Channels</h3></div>
+            <div class="card-body">
+              <div id="compare-channel-selectors" class="compare-selectors">
+                <select class="input compare-select" onchange="updateCompareChart()">
+                  <option value="">Select Channel...</option>
+                </select>
+                <span class="compare-vs">VS</span>
+                <select class="input compare-select" onchange="updateCompareChart()">
+                  <option value="">Select Channel...</option>
+                </select>
+                <button class="btn btn-ghost btn-sm" onclick="addCompareSlot()">+ Add</button>
+              </div>
+              <div class="chart-container" style="margin-top:1rem;">
+                <canvas id="chart-compare-channels"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Compare Videos -->
+          <div class="card" style="margin-top:1.5rem;">
+            <div class="card-header"><h3>Compare Videos</h3></div>
+            <div class="card-body">
+              <div id="compare-video-inputs" class="compare-inputs">
+                <input type="text" class="input compare-video-input" placeholder="Paste video URL or ID..." />
+                <input type="text" class="input compare-video-input" placeholder="Paste video URL or ID..." />
+                <button class="btn btn-ghost btn-sm" onclick="addVideoCompareSlot()">+ Add</button>
+              </div>
+              <button class="btn btn-primary" style="margin-top:0.75rem;" onclick="compareVideos()">Compare Videos</button>
+              <div id="video-compare-results" style="margin-top:1rem;"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== INSIGHTS PAGE ==================== -->
+        <section id="page-insights" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Insights</h1>
+              <p class="page-desc">AI-free growth insights and performance analysis</p>
+            </div>
+          </div>
+
+          <div class="insights-grid" id="insights-container">
+            <div class="card insight-card">
+              <div class="card-header"><h3>📈 Growth Prediction</h3></div>
+              <div class="card-body">
+                <p class="text-muted">Based on historical data from your tracked channels</p>
+                <div class="chart-container">
+                  <canvas id="chart-growth-prediction"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="card insight-card">
+              <div class="card-header"><h3>🏆 Best Performing Content</h3></div>
+              <div class="card-body">
+                <div id="best-content-list" class="insight-list">
+                  <div class="empty-state-sm">Add channels to see insights</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card insight-card">
+              <div class="card-header"><h3>⏰ Best Upload Times</h3></div>
+              <div class="card-body">
+                <div class="chart-container">
+                  <canvas id="chart-upload-times"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="card insight-card">
+              <div class="card-header"><h3>💡 Improvement Tips</h3></div>
+              <div class="card-body">
+                <div id="improvement-tips" class="tips-list">
+                  <div class="empty-state-sm">Track more data for personalized tips</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card insight-card">
+              <div class="card-header"><h3>📊 Engagement Rate Trend</h3></div>
+              <div class="card-body">
+                <div class="chart-container">
+                  <canvas id="chart-engagement-trend"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="card insight-card">
+              <div class="card-header"><h3>🎯 CTR Estimation</h3></div>
+              <div class="card-body">
+                <p class="text-muted">Estimated click-through rates based on title patterns and thumbnail presence</p>
+                <div id="ctr-estimates" class="insight-list">
+                  <div class="empty-state-sm">Add videos to see CTR estimates</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== KEYWORDS PAGE ==================== -->
+        <section id="page-keywords" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Keywords & Tags</h1>
+              <p class="page-desc">Analyze tags, keywords, and content clusters</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3>🏷️ Tag Cloud</h3></div>
+            <div class="card-body">
+              <div id="tag-cloud" class="tag-cloud">
+                <div class="empty-state-sm">Track channels with videos to see tag analysis</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="charts-grid" style="margin-top:1.5rem;">
+            <div class="card">
+              <div class="card-header"><h3>Top Tags by Frequency</h3></div>
+              <div class="card-body chart-container">
+                <canvas id="chart-tags"></canvas>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><h3>Tag Performance</h3></div>
+              <div class="card-body chart-container">
+                <canvas id="chart-tag-performance"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:1.5rem;">
+            <div class="card-header"><h3>🔗 Keyword Clusters</h3></div>
+            <div class="card-body">
+              <div id="keyword-clusters" class="cluster-grid">
+                <div class="empty-state-sm">Not enough data for clustering</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== HEATMAP PAGE ==================== -->
+        <section id="page-heatmap" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Activity Heatmap</h1>
+              <p class="page-desc">Visualize upload and engagement patterns by day and hour</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3>📅 Upload Activity Heatmap</h3>
+              <div class="filter-group">
+                <select id="heatmap-channel" class="input input-sm" onchange="renderHeatmap()">
+                  <option value="">All Channels</option>
+                </select>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="heatmap-container" class="heatmap-container">
+                <div class="empty-state-sm">Track channels to see activity patterns</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:1.5rem;">
+            <div class="card-header"><h3>📊 Day-of-Week Performance</h3></div>
+            <div class="card-body chart-container">
+              <canvas id="chart-day-performance"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== FAVORITES PAGE ==================== -->
+        <section id="page-favorites" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Favorites</h1>
+              <p class="page-desc">Your favorite channels and videos</p>
+            </div>
+          </div>
+
+          <div class="tabs">
+            <button class="tab active" onclick="switchFavTab('channels', this)">📺 Channels</button>
+            <button class="tab" onclick="switchFavTab('videos', this)">🎬 Videos</button>
+          </div>
+
+          <div id="fav-channels" class="channel-grid" style="margin-top:1rem;">
+            <div class="empty-state">
+              <div class="empty-icon">⭐</div>
+              <h3>No Favorite Channels</h3>
+              <p>Click the star icon on any channel to add it to favorites</p>
+            </div>
+          </div>
+          <div id="fav-videos" class="video-grid" style="margin-top:1rem; display:none;">
+            <div class="empty-state">
+              <div class="empty-icon">⭐</div>
+              <h3>No Favorite Videos</h3>
+              <p>Click the star icon on any video to add it to favorites</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== WATCH LATER PAGE ==================== -->
+        <section id="page-watchlater" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Watch Later</h1>
+              <p class="page-desc">Videos you've saved to watch later</p>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-outline btn-sm" onclick="clearWatchLater()">Clear All</button>
+            </div>
+          </div>
+
+          <div id="watchlater-list" class="video-grid">
+            <div class="empty-state">
+              <div class="empty-icon">⏰</div>
+              <h3>No Videos Saved</h3>
+              <p>Click the clock icon on any video to save it for later</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== REPORTS PAGE ==================== -->
+        <section id="page-reports" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Reports</h1>
+              <p class="page-desc">Generate and download analytics reports</p>
+            </div>
+          </div>
+
+          <div class="reports-grid">
+            <div class="card report-type-card" onclick="openModal('report-modal')">
+              <div class="report-icon">📊</div>
+              <h3>Channel Summary</h3>
+              <p>Full overview of all tracked channels with key metrics</p>
+            </div>
+            <div class="card report-type-card" onclick="openReportWithType('video')">
+              <div class="report-icon">🎬</div>
+              <h3>Video Analytics</h3>
+              <p>Detailed video performance data with engagement metrics</p>
+            </div>
+            <div class="card report-type-card" onclick="openReportWithType('comparison')">
+              <div class="report-icon">⚖️</div>
+              <h3>Comparison Report</h3>
+              <p>Side-by-side comparison of channels or videos</p>
+            </div>
+            <div class="card report-type-card" onclick="openReportWithType('full')">
+              <div class="report-icon">📈</div>
+              <h3>Full Dashboard</h3>
+              <p>Complete data export with all charts and metrics</p>
+            </div>
+            <div class="card report-type-card" onclick="exportDashboardImage()">
+              <div class="report-icon">🖼️</div>
+              <h3>Dashboard Screenshot</h3>
+              <p>Download the current dashboard as an image</p>
+            </div>
+            <div class="card report-type-card" onclick="exportAllData()">
+              <div class="report-icon">💾</div>
+              <h3>Full Data Backup</h3>
+              <p>Export all stored data as JSON for backup</p>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:1.5rem;">
+            <div class="card-header"><h3>📋 Report History</h3></div>
+            <div class="card-body">
+              <div id="report-history" class="report-history">
+                <div class="empty-state-sm">No reports generated yet</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== ALERTS PAGE ==================== -->
+        <section id="page-alerts" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Alerts & Monitoring</h1>
+              <p class="page-desc">Set up alerts for channels and videos</p>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3>➕ Create Alert</h3></div>
+            <div class="card-body">
+              <div class="alert-form">
+                <div class="form-group">
+                  <label>Alert Type</label>
+                  <select id="alert-type" class="input">
+                    <option value="views_spike">Views Spike</option>
+                    <option value="sub_change">Subscriber Change</option>
+                    <option value="new_video">New Video Upload</option>
+                    <option value="comment_spike">Comment Spike</option>
+                    <option value="milestone">Milestone Reached</option>
+                  </select>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Channel</label>
+                    <select id="alert-channel" class="input">
+                      <option value="">Any Channel</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Threshold</label>
+                    <input type="number" id="alert-threshold" class="input" placeholder="e.g., 10000" />
+                  </div>
+                </div>
+                <button class="btn btn-primary" onclick="createAlert()">Create Alert</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:1.5rem;">
+            <div class="card-header">
+              <h3>📋 Active Alerts</h3>
+              <button class="btn btn-ghost btn-sm" onclick="clearAlerts()">Clear All</button>
+            </div>
+            <div class="card-body">
+              <div id="alerts-list" class="alerts-list">
+                <div class="empty-state-sm">No alerts configured</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:1.5rem;">
+            <div class="card-header"><h3>📜 Alert History</h3></div>
+            <div class="card-body">
+              <div id="alert-history" class="alerts-list">
+                <div class="empty-state-sm">No alerts triggered yet</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================== SETTINGS PAGE ==================== -->
+        <section id="page-settings" class="page">
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Settings</h1>
+              <p class="page-desc">Configure YTNavigator to your preferences</p>
+            </div>
+          </div>
+
+          <div class="settings-grid">
+            <div class="card">
+              <div class="card-header"><h3>🎨 Appearance</h3></div>
+              <div class="card-body">
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <span class="setting-label">Theme</span>
+                    <span class="setting-desc">Choose between dark and light mode</span>
+                  </div>
+                  <select id="setting-theme" class="input input-sm" onchange="applyThemeSetting(this.value)">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                    <option value="auto">Auto (System)</option>
+                  </select>
+                </div>
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <span class="setting-label">Accent Color</span>
+                    <span class="setting-desc">Primary color for charts and UI elements</span>
+                  </div>
+                  <input type="color" id="setting-accent" class="input-color" value="#ff0050" onchange="applyAccentColor(this.value)" />
+                </div>
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <span class="setting-label">Chart Animation</span>
+                    <span class="setting-desc">Enable or disable chart animations</span>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox" id="setting-chart-anim" checked onchange="saveSetting('chartAnimation', this.checked)" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <span class="setting-label">Compact Mode</span>
+                    <span class="setting-desc">Reduce spacing and card sizes</span>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox" id="setting-compact" onchange="toggleCompactMode(this.checked)" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><h3>🔑 API Configuration</h3></div>
+              <div class="card-body">
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <span class="setting-label">YouTube API Key</span>
+                    <span class="setting-desc">Required for live data fetching</span>
+                  </div>
+                  <button class="btn btn-outline btn-sm" onclick="openModal('api-key-modal')">Configure</button>
+                </div>
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <span class="setting-label">API Status</span>
+                    <span class="setting-desc" id="api-status">Not configured</span>
+                  </div>
+                  <span id="api-status-badge" class="badge badge-warning">Inactive</span>
+                </div>
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <span class="setting-label">Auto-Refresh Interval</span>
+                    <span class="setting-desc">How often to refresh data automatically</span>
+                  </div>
+                  <select id="setting-refresh" class="input input-sm" onchange="saveSetting('refreshInterval', this.value)">
+                    <option value="0">Manual Only</option>
+                    <option value="300000">5 Minutes</option>
+                    <option value="900000">15 Minutes</option>
+                    <option value="1800000">30 Minutes</option>
+                    <option value="3600000">1 Hour</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><h3>🔔 Notifications</h3></div>
+              <div class="card-body">
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <span class="setting-label">Browser Notifications</span>
+                    <span class="setting-desc">Show desktop notifications for alerts</span>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox" id="setting-browser-notif" onchange="toggleBrowserNotifications(this.checked)" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <span class="setting-label">Daily Summary</span>
+                    <span class="setting-desc">Get a daily summary notification</span>
+                  </div>
+                  <label class="toggle">
+                    <input type="checkbox" id="setting-daily-summary" onchange="saveSetting('dailySummary', this.checked)" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><h3>💾 Data Management</h3></div>
+              <div class="card-body">
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <span class="setting-label">Export All Data</span>
+                    <span class="setting-desc">Download a JSON backup of all your data</span>
+                  </div>
+                  <button class="btn btn-outline btn-sm" onclick="exportAllData()">Export</button>
+                </div>
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <span class="setting-label">Import Data</span>
+                    <span class="setting-desc">Restore data from a JSON backup</span>
+                  </div>
+                  <label class="btn btn-outline btn-sm">
+                    Import
+                    <input type="file" accept=".json" style="display:none;" onchange="importData(this)" />
+                  </label>
+                </div>
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <span class="setting-label">Clear All Data</span>
+                    <span class="setting-desc">Remove all stored channels, videos, and settings</span>
+                  </div>
+                  <button class="btn btn-danger btn-sm" onclick="clearAllData()">Clear</button>
+                </div>
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <span class="setting-label">Storage Used</span>
+                    <span class="setting-desc" id="storage-used">Calculating...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- About Section -->
+          <div class="card" style="margin-top:1.5rem;">
+            <div class="card-header"><h3>ℹ️ About YTNavigator</h3></div>
+            <div class="card-body">
+              <div class="about-info">
+                <p><strong>Version:</strong> 1.0.0</p>
+                <p><strong>Built with:</strong> Vanilla JS, Chart.js, HTML5, CSS3</p>
+                <p><strong>Data Source:</strong> YouTube Data API v3</p>
+                <p><strong>Storage:</strong> Local Browser Storage (your data stays on your device)</p>
+                <p style="margin-top:1rem;">
+                  <a href="privacy.html">Privacy Policy</a> &nbsp;|&nbsp;
+                  <a href="terms.html">Terms of Service</a> &nbsp;|&nbsp;
+                  <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a>
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- end page-content -->
+    </main>
+  </div><!-- end app -->
+
+  <!-- ===== COMMAND PALETTE ===== -->
+  <div id="command-palette" class="command-palette" style="display:none;">
+    <div class="command-overlay" onclick="closeCommandPalette()"></div>
+    <div class="command-dialog">
+      <input type="text" id="command-input" class="command-search" placeholder="Type a command..." autocomplete="off" />
+      <div id="command-results" class="command-results"></div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/storage.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
